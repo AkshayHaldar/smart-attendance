@@ -15,7 +15,8 @@ motor
 python-jose
 pydantic-settings==2.10.1
 aiofiles==24.1.0
-bcrypt==4.1.2
 passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+
 
 
