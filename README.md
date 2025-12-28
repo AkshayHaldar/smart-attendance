@@ -1237,7 +1237,6 @@ Want to see your name here? Check out our [Contributing Guide](#-contributing)!
 
 Special thanks to:
 
-- **GirlScript Summer of Code (GSSoC)** for supporting this project
 - **FastAPI** team for the amazing framework
 - **React** team for the powerful UI library
 - **face_recognition** library by Adam Geitgey
@@ -1261,7 +1260,7 @@ Special thanks to:
 
 ### Try It Out
 
-- **Frontend Demo**: [https://sa-gl.vercel.app](https://sa-gl.vercel.app)
+- **Frontend Demo**: [https://studentcheck.vercel.app](https://studentcheck.vercel.app)
 - **UI Design Preview**: [https://app.banani.co/preview/n08pleRdJIZY](https://app.banani.co/preview/n08pleRdJIZY)
 - **API Documentation**: Available at `/docs` endpoint when running locally
 
