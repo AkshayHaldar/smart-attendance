@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import Webcam from "react-webcam";
 import { 
   Settings, 
@@ -12,13 +12,60 @@ import {
   AlertCircle,
   User
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { fetchMySubjects, fetchSubjectStudents } from "../api/teacher";
+import { captureAndSend } from "../api/attendance";
+import FaceOverlay from "../components/FaceOverlay";
+import api from "../api/axiosClient";
 
 export default function MarkAttendance() {
+  const navigate = useNavigate();
   const webcamRef = useRef(null);
   const [snap, setSnap] = useState(null);
   const [status, setStatus] = useState("Idle");
   const [activeTab, setActiveTab] = useState("Present");
   const [isSessionActive, setIsSessionActive] = useState(true);
+
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [detections, setDetections] = useState([]);
+
+  const [attendanceMap, setAttendanceMap] = useState({});
+  const [attendanceSubmitted, setAttendanceSubmitted] = useState(false);
+
+
+
+  // Simulating the fetch call you had
+  useEffect(() => {
+    fetchMySubjects().then(setSubjects);
+  }, []);
+
+  useEffect(() => {
+    if(!selectedSubject) return;
+    fetchSubjectStudents(selectedSubject).then(setStudents);
+  }, [selectedSubject])
+
+  useEffect(() => {
+    if (!students.length) return;
+
+    const initial = {};
+    students.forEach((s) => {
+      initial[s.student_id] = {
+        name: s.name,
+        roll: s.roll,
+        count: 0,
+        status: "absent",
+      };
+    });
+
+    setAttendanceMap(initial);
+  }, [students]);
+
+
+  const verifiedStudents = students.filter(
+    (s) => s.verified === true
+  );
 
   // --- Existing Functionalities ---
   const capture = useCallback(() => {
@@ -28,23 +75,85 @@ export default function MarkAttendance() {
     submitImage(imageSrc);
   }, [webcamRef]);
 
-  const submitImage = async (imageSrc) => {
-    setStatus("Processing...");
+  useEffect(() => {
+    if (!selectedSubject || !webcamRef.current) return;
+
+    const interval = setInterval(() => {
+      captureAndSend(webcamRef, selectedSubject, setDetections);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [selectedSubject]);
+
+  const presentStudents = Object.entries(attendanceMap)
+    .filter(([_, s]) => s.status === "present")
+    .map(([id, s]) => ({
+      studentId: id,
+      name: s.name,
+      roll: s.roll,
+    }));
+
+  const absentStudents = Object.entries(attendanceMap)
+    .filter(([_, s]) => s.status === "absent")
+    .map(([id, s]) => ({
+      studentId: id,
+      name: s.name,
+      roll: s.roll,
+    }));
+
+  const handleConfirmAttendance = async () => {
+    if (attendanceSubmitted) {
+      alert("Attendance already marked for this session");
+      return;
+    }
+
     try {
-      // Mocking the backend call logic from your previous code
-      const res = await fetch("/api/attendance/mark", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageSrc })
+      await api.post("/api/attendance/confirm", {
+        subject_id: selectedSubject,
+        present_students: presentStudents.map((s) => s.studentId),
+        absent_students: absentStudents.map((s) => s.studentId),
       });
-      const json = await res.json();
-      setStatus("Done: " + (json.detected?.length || 0) + " detected");
+
+      setAttendanceSubmitted(true);
+      alert("Attendance saved successfully");
     } catch (err) {
-      // For demo purposes, we settle to 'Idle' or 'Error'
-      setStatus("Idle"); 
-      console.log("Mock submission (backend likely not running)");
+      console.error(err);
+      alert("Failed to save attendance");
     }
   };
+
+  useEffect(() => {
+    if (!detections.length) return;
+
+    setAttendanceMap((prev) => {
+      const updated = { ...prev };
+
+      detections.forEach((f) => {
+        if (f.status !== "present" || !f.student) return;
+
+        const id = f.student.id;
+
+        if (!updated[id]) return;
+
+        // increment detection count
+        updated[id].count += 1;
+
+        // mark present after 3 confirmations
+        if (updated[id].count >= 3) {
+          updated[id].status = "present";
+        }
+      });
+
+      return updated;
+    });
+    console.log("Detections:", detections);
+  }, [detections]);
+
+
+
+
+
+
   // -------------------------------
 
   return (
@@ -62,9 +171,9 @@ export default function MarkAttendance() {
               <Clock size={16} />
               <span>09:00 - 10:00</span>
             </div>
-            <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 bg-white transition">
+            <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 bg-white transition cursor-pointer">
               <Settings size={16} />
-              <span>Session settings</span>
+              <span className="session-settings" onClick={()=>navigate("/settings")}>Session settings</span>
             </button>
           </div>
         </div>
@@ -73,10 +182,18 @@ export default function MarkAttendance() {
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <div className="flex flex-col gap-1 w-full sm:w-64">
             <label className="text-xs font-semibold text-[var(--text-body)] uppercase tracking-wide">Class</label>
-            <select className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-[var(--text-main)] focus:ring-2 focus:ring-indigo-500 outline-none">
-              <option>CSE 3A • Data Structures</option>
-              <option>CSE 3B • Algorithms</option>
-            </select>
+            <select
+                value={selectedSubject || ""}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+                className="flex items-center gap-1 text-sm font-medium text-gray-600 px-3 py-1.5 hover:bg-gray-100 rounded-lg whitespace-nowrap cursor-pointer"
+              >
+                <option disabled value="">Select subject</option>
+                {subjects.map(s => (
+                  <option key={s._id} value={s._id}>
+                    {s.name} ({s.code})
+                  </option>
+                ))}
+              </select>
           </div>
           <div className="flex flex-col gap-1 w-full sm:w-48">
             <label className="text-xs font-semibold text-[var(--text-body)] uppercase tracking-wide">Date</label>
@@ -103,35 +220,13 @@ export default function MarkAttendance() {
                 audio={false}
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
-                className="w-full h-full object-cover opacity-90"
+                mirrored={true}
+                className="w-full h-full object-cover"
               />
 
-              {/* Mock Overlay UI (Bounding Boxes) */}
-              <div className="absolute inset-0 p-6 pointer-events-none">
-                 {/* Green Box (Identified) */}
-                 <div className="absolute top-1/4 left-1/4 w-32 h-32 border-2 border-green-400 rounded-lg bg-green-400/10">
-                    <span className="absolute -top-6 left-0 bg-green-500 text-white text-[10px] px-2 py-0.5 rounded">Rahul S. (98%)</span>
-                 </div>
-                 {/* Yellow Box (Uncertain) */}
-                 <div className="absolute top-1/3 right-1/4 w-32 h-32 border-2 border-amber-400 rounded-lg bg-amber-400/10">
-                    <span className="absolute -top-6 left-0 bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded">Check ID</span>
-                 </div>
-                 
-                 {/* Overlay Stats Pills */}
-                 <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-                    <div className="bg-black/50 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/10">
-                      3 identified
-                    </div>
-                    <div className="bg-red-500/80 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/10">
-                      1 needs review
-                    </div>
-                 </div>
 
-                 {/* Instructions */}
-                 <div className="absolute top-4 left-4 bg-black/30 backdrop-blur text-white/80 px-3 py-1.5 rounded-lg text-xs border border-white/10">
-                   Ensure good lighting and all faces visible
-                 </div>
-              </div>
+              {/* REAL FACE OVERLAY */}
+              <FaceOverlay faces={detections} videoRef={webcamRef} />
 
               {/* Bottom Camera Controls */}
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent flex justify-between items-end">
@@ -143,12 +238,12 @@ export default function MarkAttendance() {
                    <button className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition backdrop-blur-md">
                      <Grid size={20} />
                    </button>
-                   <button 
+                   {/* <button 
                      onClick={capture}
                      className="p-3 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-xl shadow-lg hover:scale-105 transition active:scale-95"
                    >
                      <Play size={24} fill="currentColor" />
-                   </button>
+                   </button> */}
                 </div>
               </div>
             </div>
@@ -193,79 +288,61 @@ export default function MarkAttendance() {
 
             {/* Scrollable List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {/* Card 1: Present */}
-              <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-between group">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-sm">RS</div>
-                  <div>
-                    <h4 className="text-sm font-bold text-[var(--text-main)]">Rahul Sharma</h4>
-                    <p className="text-xs text-indigo-500">CSE3A-021</p>
+              {activeTab === "Present" &&
+                presentStudents.map((s) => (
+                  <div
+                    key={s.studentId}
+                    className="p-3 rounded-xl bg-green-50 border border-green-200 flex items-center justify-between"
+                  >
+                    <div>
+                      <h4 className="text-sm font-bold">{s.name}</h4>
+                      <p className="text-xs text-green-600">{s.roll}</p>
+                    </div>
+                    <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] rounded-full font-bold">
+                      Present
+                    </span>
                   </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold uppercase rounded-full">Present</span>
-                  <button className="text-[10px] text-indigo-400 hover:text-indigo-600 font-medium">Set absent</button>
-                </div>
-              </div>
+                ))}
 
-              {/* Card 2: Present */}
-              <div className="p-3 rounded-xl bg-white border border-gray-100 hover:border-indigo-100 flex items-center justify-between group shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-sm">PN</div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-[var(--text-main)]">Priya Nair</h4>
-                    <p className="text-xs text-[var(--text-body)]">CSE3A-034</p>
+              {activeTab === "All" &&
+                Object.entries(attendanceMap).map(([id, s]) => (
+                  <div
+                    key={id}
+                    className="p-3 rounded-xl bg-white border border-gray-100 flex items-center justify-between"
+                  >
+                    <div>
+                      <h4 className="text-sm font-semibold">{s.name}</h4>
+                      <p className="text-xs text-gray-500">{s.roll}</p>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 text-white text-[10px] rounded-full font-bold ${
+                        s.status === "present"
+                          ? "bg-green-500"
+                          : "bg-gray-400"
+                      }`}
+                    >
+                      {s.status}
+                    </span>
                   </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold uppercase rounded-full">Present</span>
-                  <button className="text-[10px] text-gray-400 hover:text-[var(--primary)] font-medium">Set absent</button>
-                </div>
-              </div>
-
-              {/* Card 3: Late */}
-              <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between group">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm">AV</div>
-                  <div>
-                    <h4 className="text-sm font-bold text-[var(--text-main)]">Arjun Verma</h4>
-                    <p className="text-xs text-blue-500">CSE3A-018</p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold uppercase rounded-full">Late</span>
-                  <button className="text-[10px] text-blue-400 hover:text-blue-600 font-medium">Set present</button>
-                </div>
-              </div>
-
-              {/* Card 4: Unknown (Needs Review) */}
-              <div className="p-3 rounded-xl bg-red-50 border border-red-100 flex items-center justify-between group">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500">
-                    <User size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-[var(--text-main)]">Unknown face</h4>
-                    <p className="text-xs text-red-500">No match found</p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold uppercase rounded-full">Unidentified</span>
-                  <button className="text-[10px] text-red-500 hover:text-red-700 font-medium underline">Assign student</button>
-                </div>
-              </div>
-
+                ))}
             </div>
+
 
             {/* Sticky Footer */}
             <div className="p-4 border-t border-gray-100 bg-gray-50">
-              <div className="flex justify-between items-center text-xs text-[var(--text-body)] mb-3">
-                 <span>32 present</span>
-                 <span>• 3 late</span>
-                 <span>• 10 absent</span>
+              <div className="flex justify-between items-center text-xs mb-3">
+                <span>{presentStudents.length} present</span>
+                <span>• {absentStudents.length} absent</span>
               </div>
-              <button className="w-full py-3 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-xl font-semibold shadow-md transition flex items-center justify-center gap-2">
-                Confirm attendance
+
+              <button disabled={attendanceSubmitted} onClick={handleConfirmAttendance} className={`w-full py-3 rounded-xl font-semibold shadow-md transition flex items-center justify-center gap-2
+                ${
+                  attendanceSubmitted
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white"
+                }
+              `}>
+                {attendanceSubmitted ? "Attendance Submitted" : "Confirm Attendance"}
                 <Check size={18} />
               </button>
             </div>

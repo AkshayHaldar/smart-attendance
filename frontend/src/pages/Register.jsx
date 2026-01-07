@@ -11,7 +11,8 @@ import {
   Phone, 
   Hash, 
   BookOpen,
-  ArrowLeft
+  ArrowLeft,
+  TrendingUp
 } from "lucide-react";
 
 export default function Register() {
@@ -29,12 +30,16 @@ export default function Register() {
     email: "",
     password: "",
     branch: "",
-    employeeId: "",
+    employee_id: "",
     phone: "",
+    roll: "",
+    year: ""
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const apiUrl = import.meta.env.VITE_API_URL;
 
   const handleChange = (e) => {
     const {name, value} = e.target;
@@ -53,11 +58,14 @@ export default function Register() {
         email: formData.email,
         password: formData.password,
         branch: role === "student" ? formData.branch : undefined,
-        employeeId: role === "teacher" ? formData.employeeId : undefined,
+        employee_id: role === "teacher" ? formData.employee_id : undefined,
         phone: role === "teacher" ? formData.phone : undefined,
+        year: role === "student" ? formData.year : undefined,
+        roll: role === "student" ? formData.roll : undefined,
+
       };
 
-      const res = await fetch("http://127.0.0.1:8000/auth/register", {
+      const res = await fetch(`${apiUrl}/auth/register`, {
         method: "POST",
         headers: {"Content-Type" : "application/json"},
         body: JSON.stringify(payload)
@@ -175,21 +183,73 @@ export default function Register() {
 
                 {/* ROLE SPECIFIC FIELDS */}
                 
-                {role === 'student' && (
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-semibold text-gray-700">Branch</label>
-                    <div className="relative">
-                      <select
-                        name="branch"
-                        value={formData.branch}
-                        onChange={handleChange}
-                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all pl-10 appearance-none text-gray-600">
-                        <option value="">Select Branch</option>
-                        <option value="cse">Computer Science (CSE)</option>
-                        <option value="ece">Electronics (ECE)</option>
-                        <option value="mech">Mechanical (ME)</option>
-                      </select>
-                      <BookOpen size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                {role === "student" && (
+                  <div className="space-y-4">
+                    {/* -------- Branch -------- */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-semibold text-gray-700">Branch</label>
+                      <div className="relative">
+                        <select
+                          name="branch"
+                          value={formData.branch}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all pl-10 appearance-none text-gray-600"
+                        >
+                          <option value="" disabled>Select Branch</option>
+                          <option value="cse">Computer Science (CSE)</option>
+                          <option value="ece">Electronics (ECE)</option>
+                          <option value="me">Mechanical (ME)</option>
+                          <option value="ee">Electrical (EE)</option>
+                          <option value="ce">Civil (CE)</option>
+                        </select>
+                        <BookOpen
+                          size={18}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* -------- Year -------- */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-semibold text-gray-700">Year</label>
+                      <div className="relative">
+                        <select
+                          name="year"
+                          value={formData.year}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all pl-10 appearance-none text-gray-600"
+                        >
+                          <option value="" disabled>Select Year</option>
+                          <option value="1">1st Year</option>
+                          <option value="2">2nd Year</option>
+                          <option value="3">3rd Year</option>
+                          <option value="4">4th Year</option>
+                          <option value="5">5th Year</option>
+                        </select>
+                        <TrendingUp
+                          size={18}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* -------- Roll Number -------- */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-semibold text-gray-700">Roll Number</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="roll"
+                          value={formData.roll}
+                          onChange={handleChange}
+                          placeholder="Enter roll number"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all pl-10 text-gray-600"
+                        />
+                        <User
+                          size={18}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -201,8 +261,8 @@ export default function Register() {
                       <div className="relative">
                         <input 
                           type="text"
-                          name="employeeId"
-                          value={formData.employeeId}
+                          name="employee_id"
+                          value={formData.employee_id}
                           onChange={handleChange} 
                           placeholder="EMP-12345" 
                           className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all pl-10"

@@ -8,9 +8,11 @@ class LoginRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
+    user_id: str
     email: str
     role: str
     name: str
+    token: str
 
 class RegisterRequest(BaseModel):
     role: str
@@ -20,7 +22,11 @@ class RegisterRequest(BaseModel):
     
     # Student
     branch: Optional[str] = None
+    roll: Optional[str] = None
+    year: Optional[str] = None
     
     # Teacher 
     employee_id: Optional[str] = None
     phone: Optional[str] = None
+    
+    is_verified: bool = False
