@@ -24,12 +24,12 @@ class BrevoEmailService:
         "api-key": brevo_settings.BREVO_API_KEY,
         "content-type": "application/json"
         }
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0) as client:
             try:
                 response=await client.post(BREVO_URL,json=payload,headers=headers)
                 response.raise_for_status()
             except httpx.HTTPError as e:
-                print(f"Failed to send email to {to_email}",str(e))
+                print("Failed to send email",str(e))
 
 
 
