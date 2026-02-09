@@ -20,6 +20,8 @@ Thumbs.db
 # =========================
 server/.venv/
 server/venv/
+server/backend-api/.venv/
+server/ml-service/.venv/
 server/__pycache__/
 server/**/*.pyc
 server/**/*.pyo
