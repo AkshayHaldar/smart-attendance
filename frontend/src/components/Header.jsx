@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Bell, User, ChevronDown, Menu, X } from "lucide-react";
 
+/** Navigation link definitions for the main header. */
 const navLinks = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/attendance", label: "Attendance" },
@@ -11,7 +12,15 @@ const navLinks = [
   { to: "/manage-schedule", label: "Schedule" },
 ];
 
-export default function Header({ theme, setTheme}) {
+/**
+ * Header component responsible for rendering the main navigation bar.
+ *
+ * @param {Object} props
+ * @param {"light"|"dark"} props.theme - The current theme.
+ * @param {Function} props.setTheme - Callback to update the theme.
+ * @returns {React.ReactElement} The rendered header.
+ */
+export default function Header({ theme, setTheme }) {
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
@@ -34,22 +43,35 @@ export default function Header({ theme, setTheme}) {
 
   const displayName = user?.name || user?.email || "Guest";
 
+  /**
+   * Checks whether the given path matches the current route.
+   *
+   * @param {string} path - The route path to check.
+   * @returns {boolean} True if the path is the current route.
+   */
   const isActive = (path) => location.pathname === path;
 
   return (
-    <>
-    <div className="w-full h-16 flex items-center justify-start px-6 bg-[var(--bg-card)] gap-2" role="navigation">
-        <div className="logo-section flex items-center gap-4">
-            <img className="w-14 h-14 rounded-full" src="logo.png" alt="" />
-            <h1 className="text-2xl font-semibold text-[var(--text-main)]">Smart Attendance</h1>
-        </div>
-        <div className="nav-links text-gray-500 gap-1 ml-10">
-            <a href="/" className="mx-2 font-semibold hover:text-[var(--primary)] hover:bg-[var(--primary-hover)] py-2 px-3 rounded-4xl">Dashboard</a>
-            <a href="/attendance" className="mx-2 font-semibold hover:text-[var(--primary)] hover:bg-[var(--primary-hover)] py-2 px-3 rounded-4xl">Attendance</a>
-            <a href="/students" className="mx-2 font-semibold hover:text-[var(--primary)] hover:bg-[var(--primary-hover)] py-2 px-3 rounded-4xl">Student</a>
-            <a href="/analytics" className="mx-2 font-semibold hover:text-[var(--primary)] hover:bg-[var(--primary-hover)] py-2 px-3 rounded-4xl">Analytics</a>
-            <a href="/reports" className="mx-2 font-semibold hover:text-[var(--primary)] hover:bg-[var(--primary-hover)] py-2 px-3 rounded-4xl">Reports</a>
-            <a href="/manage-schedule" className="mx-2 font-semibold hover:text-[var(--primary)] hover:bg-[var(--primary-hover)] py-2 px-3 rounded-4xl">ManageSchedule</a>
+    <header className="sticky top-0 z-50 w-full bg-[var(--bg-card)] border-b border-[var(--border-color)] shadow-sm">
+      {/* Main bar */}
+      <div className="flex items-center justify-between h-16 px-4 md:px-6">
+        {/* Left: Logo + toggle */}
+        <div className="flex items-center gap-3">
+          {/* Mobile toggle button */}
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="lg:hidden p-2 rounded-lg text-[var(--text-body)] hover:bg-[var(--bg-secondary)] transition-colors"
+            aria-label="Toggle navigation"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-nav"
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+
+          <Link to="/dashboard" className="flex items-center gap-3">
+            <img className="w-10 h-10 rounded-full" src="/logo.png" alt="Logo" />
+            <h1 className="text-xl font-bold text-[var(--text-main)] hidden sm:block">Smart Attendance</h1>
+          </Link>
         </div>
 
         {/* Center: Desktop nav links */}
@@ -74,19 +96,25 @@ export default function Header({ theme, setTheme}) {
           <div className="bg-[var(--primary)] p-1.5 rounded-full cursor-pointer">
             <Bell size={16} className="text-[var(--text-on-primary)]" />
           </div>
-          <div className="hidden sm:flex items-center gap-2">
+          <Link
+            to="/settings"
+            className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+            aria-label="Open settings"
+          >
             <User size={20} className="text-[var(--text-body)]" />
             <span className="text-sm font-medium text-[var(--text-main)]">{displayName}</span>
-            <Link to="/settings">
-              <ChevronDown size={16} className="text-[var(--text-body)] cursor-pointer" />
-            </Link>
-          </div>
+            <ChevronDown size={16} className="text-[var(--text-body)]" />
+          </Link>
         </div>
       </div>
 
       {/* Mobile nav drawer */}
       {menuOpen && (
-        <nav className="lg:hidden border-t border-[var(--border-color)] bg-[var(--bg-card)] px-4 pb-4 pt-2 space-y-1 animate-in slide-in-from-top">
+        <nav
+          id="mobile-nav"
+          aria-label="Mobile navigation"
+          className="lg:hidden border-t border-[var(--border-color)] bg-[var(--bg-card)] px-4 pb-4 pt-2 space-y-1 animate-in slide-in-from-top"
+        >
           {navLinks.map((link) => (
             <Link
               key={link.to}
