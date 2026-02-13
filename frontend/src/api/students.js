@@ -11,6 +11,11 @@ export const fetchMyStudentProfile = async () => {
   return res.data;
 }
 
+export const fetchMySubjects = async () => {
+  const res = await api.get("/students/me/subjects");
+  return res.data;
+};
+
 export const uploadFaceImage = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -30,7 +35,7 @@ export const fetchAvailableSubjects = async () => {
 };
 
 export const addSubjectToStudent = async (subjectid) => {
-  const res = await api.post("/students/me/subjects", null, {
+  await api.post("/students/me/subjects", null, {
     params: {subject_id: subjectid}
   });
 };

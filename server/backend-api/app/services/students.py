@@ -1,6 +1,5 @@
 from app.db.mongo import db
 from bson import ObjectId
-from datetime import datetime
 
 students_col = db["students"]
 users_col = db["users"]
@@ -103,13 +102,15 @@ async def build_attendance_summary(student_doc_id: ObjectId, subject_id: ObjectI
 
     recent = []
     async for r in recent_cursor:
-        recent.append({
-            "id": str(r["_id"]),
-            "date": r.get("date"),
-            "period": r.get("period"),
-            "present": r.get("present"),
-            "class_id": str(r["class_id"]) if r.get("class_id") else None,
-        })
+        recent.append(
+            {
+                "id": str(r["_id"]),
+                "date": r.get("date"),
+                "period": r.get("period"),
+                "present": r.get("present"),
+                "class_id": str(r["class_id"]) if r.get("class_id") else None,
+            }
+        )
 
     return {
         "total_classes": total_classes,

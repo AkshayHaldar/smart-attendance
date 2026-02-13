@@ -1,19 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      jsxRuntime: 'automatic', // ← force automatic runtime
+    }),
+  ],
   server: {
     port: 5173,
     proxy: {
-      '/api' : {
-        target: 'http://127.0.0.1:8000',
+      '/api': {
+        target: 'https://smart-attendance-api-i87a.onrender.com',
         changeOrigin: true,
         secure: false,
       },
-      '/static' : {
-        target: 'http://127.0.0.1:8000',
+      '/static': {
+        target: 'https://smart-attendance-api-i87a.onrender.com',
         changeOrigin: true,
         secure: false,
       }
