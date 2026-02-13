@@ -269,7 +269,7 @@ export default function ManageSchedule() {
     );
 
     const newClasses = [];
-    Object.entries(template.data).forEach(([_day, classes]) => {
+    Object.entries(template.data).forEach(([, classes]) => {
       classes.forEach((cls) => {
         newClasses.push({
           ...cls,
