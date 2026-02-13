@@ -13,7 +13,6 @@ class UserResponse(BaseModel):
     role: str
     name: str
     college_name: str
-    token: str
 
 
 class RegisterRequest(BaseModel):
