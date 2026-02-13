@@ -22,7 +22,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 oauth = OAuth()
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=RegisterResponse)
 async def register(payload: RegisterRequest, background_tasks: BackgroundTasks):
 
     if len(payload.password.encode("utf-8")) > 72:
